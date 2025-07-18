@@ -37,6 +37,7 @@ router.get('/fetchservers', authMiddleware, UserController.fetchservers);
 router.post('/save-address/:networkType', authMiddleware, UserController.saveWalletAddress);
 
 router.get('/getUserHistory', authMiddleware, transactionController.getUserHistory);
+router.get('/getDirectTeam', authMiddleware, UserController.getDirectTeam);
 
 router.post('/sendtrade', authMiddleware, UserController.sendtrade);
 router.get('/runingtrade', authMiddleware, UserController.runingtrade);
@@ -46,6 +47,7 @@ router.get('/list', authMiddleware,TeamController.listUsers);
 router.get('/serverc', authMiddleware, UserController.serverc);
 router.get('/totalRef', authMiddleware, UserController.totalRef);
 router.post('/getTradeIncomes', authMiddleware, UserController.tradeinc);
+router.get('/buyFund', authMiddleware, UserController.buyFund);
 
 // router.post('/register', (req, res) => {
 //   res.json({ message: 'Welcome to regiset' });

@@ -100,10 +100,36 @@ const getAvailableBalance = async (userId) => {
 //     }
 //   };
 
+
+const getDirectTeam = async (req, res) => {
+  try {
+    const loginUserId = req.user.id; // Assuming you are using JWT middleware and user info is available in req.user
+
+    const directTeam = await User.findAll({
+      where: { sponsor: loginUserId },
+      attributes: ['id', 'name', 'username', 'email', 'phone', 'sponsor'],
+      order: [['id', 'DESC']]
+    });
+
+    res.status(200).json({
+      status: true,
+      message: 'Direct team fetched successfully',
+      data: directTeam
+    });
+  } catch (error) {
+    console.error("Error fetching direct team:", error);
+    res.status(500).json({
+      status: false,
+      message: 'Failed to fetch direct team',
+      error: error.message
+    });
+  }
+};
+
 const fetchTeamRecursive = async (userId, allMembers = []) => {
   const directMembers = await User.findAll({
     where: { sponsor: userId },
-    attributes: ['id', 'name', 'username', 'email', 'phone', 'sponsor']
+    attributes: ['id', 'name', 'username', 'email', 'phone', 'sponsor','active_status']
   });
 
   for (const member of directMembers) {
@@ -176,7 +202,6 @@ const direcTeam = async (req, res) => {
 
     // Fetch all team recursively
     const team = await User.findAll({ where: { sponsor: userId } });
-
     return res.status(200).json({
       message: "Team fetched successfully!",
       totalMembers: team.length,
@@ -1252,5 +1277,47 @@ const updateUserStatus = async (user) => {
   }
 };
 
-module.exports = { levelTeam, direcTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef };
+
+const buyFund = async (req, res) => {
+  try {
+    const userInfo = req.user; // Authenticated user data from middleware
+    const refId = userInfo.username;
+
+    const url = 'https://api.cryptapi.io/bep20/usdt/create/';
+
+    const queryParams = {
+      callback: `https://technodeprotocol.com/dynamicupicallback?refid=${refId}`,
+      address: '0x622b8aA4dcaF747C1CeB9a837f48b24e26F5C7aF',
+      pending: 0,
+      confirmations: 1,
+      email: 'string',
+      post: 0,
+      priority: 'default',
+      multi_token: 0,
+      multi_chain: 0,
+      convert: 0
+    };
+
+    const { data } = await axios.get(url, { params: queryParams });
+
+    // Remove callback_url from response
+    delete data.callback_url;
+
+    return res.status(200).json({
+      status: true,
+      message: "Address generated",
+      data: data
+    });
+
+  } catch (error) {
+    console.error("Error while generating address:", error.message);
+    return res.status(500).json({
+      status: false,
+      message: "Failed to generate deposit address",
+    });
+  }
+};
+
+
+module.exports = { levelTeam,buyFund, direcTeam,getDirectTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef };
 
