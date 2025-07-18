@@ -100,10 +100,36 @@ const getAvailableBalance = async (userId) => {
 //     }
 //   };
 
+
+const getDirectTeam = async (req, res) => {
+  try {
+    const loginUserId = req.user.id; // Assuming you are using JWT middleware and user info is available in req.user
+
+    const directTeam = await User.findAll({
+      where: { sponsor: loginUserId },
+      attributes: ['id', 'name', 'username', 'email', 'phone', 'sponsor'],
+      order: [['id', 'DESC']]
+    });
+
+    res.status(200).json({
+      status: true,
+      message: 'Direct team fetched successfully',
+      data: directTeam
+    });
+  } catch (error) {
+    console.error("Error fetching direct team:", error);
+    res.status(500).json({
+      status: false,
+      message: 'Failed to fetch direct team',
+      error: error.message
+    });
+  }
+};
+
 const fetchTeamRecursive = async (userId, allMembers = []) => {
   const directMembers = await User.findAll({
     where: { sponsor: userId },
-    attributes: ['id', 'name', 'username', 'email', 'phone', 'sponsor']
+    attributes: ['id', 'name', 'username', 'email', 'phone', 'sponsor','active_status']
   });
 
   for (const member of directMembers) {
@@ -176,7 +202,6 @@ const direcTeam = async (req, res) => {
 
     // Fetch all team recursively
     const team = await User.findAll({ where: { sponsor: userId } });
-
     return res.status(200).json({
       message: "Team fetched successfully!",
       totalMembers: team.length,
@@ -1252,5 +1277,5 @@ const updateUserStatus = async (user) => {
   }
 };
 
-module.exports = { levelTeam, direcTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef };
+module.exports = { levelTeam, direcTeam,getDirectTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef };
 

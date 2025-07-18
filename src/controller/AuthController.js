@@ -84,6 +84,7 @@ const login = async (req, res) => {
     try {
       // Destructure username and password from the request body.
       const { email, password } = req.body;
+      console.log(email);
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
       if (!emailRegex.test(email)) {
