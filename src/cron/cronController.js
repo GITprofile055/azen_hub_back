@@ -1,179 +1,97 @@
-// const cron = require('node-cron');
-// const { Op } = require('sequelize');
-// const Trade = require('../models/Trade');
-// const Income = require('../models/Income');
-// const User = require("../models/User");
 
-//           // Fetch up to 5 levels of users based on sponsor hierarchy
-//           const fetchFiveLevelUsers = async (userId, level = 1, maxLevel = 5) => {
-//             const user = await User.findOne({
-//                 where: { id: userId },
-//             });
-        
-//             if (!user || level > maxLevel || !user.sponsor) return [];
-        
-//             const sponsorUser = await User.findOne({
-//                 where: { id: user.sponsor },
-//             });
-        
-//             if (!sponsorUser) return [];
-        
-//             const sponsorData = {
-//                 id: sponsorUser.id,
-//                 name: sponsorUser.name,
-//                 level,
-//             };
-//             const parentSponsors = await fetchFiveLevelUsers(sponsorUser.id, level + 1, maxLevel);
-            
-//             return [sponsorData, ...parentSponsors];
-//         };
-        
+const Investment = require('../models/Investment');
+const Income = require('../models/Income');
+const User = require('../models/User');
 
-// // Define commission percentages for each level
-// const COMMISSION_RATES = {
-//   1: 0.10,  // 10%
-//   2: 0.06,  // 6%
-//   3: 0.05,  // 5%
-//   4: 0.03,  // 3%
-//   5: 0.01,  // 1%
-// };
+const addLevelIncome = require('../helper/helper');
 
-// const processDailyProfits = async () => {
-//   console.log("🔁 Cron is running...");
-//   try {
-//     const now = new Date();
+const moment = require('moment');
 
-//     const runningTrades = await Trade.findAll({
-//       where: {
-//         status: 'Running',
-//         endtime: { [Op.lte]: now },
-//       },
-//     });
+const generateRoiIncome = async () => {
+  try {
+    console.log("ROI income");
 
-//     for (const trade of runningTrades) {
-//       const userId = trade.user_id;
-//       const tradeId = trade.id;
-//       const plan = parseFloat(trade.plan);
-//       const amount = parseFloat(trade.amount);
-//       const period = parseInt(trade.period, 10);
-//       const serverHash = trade.selectedServer;
+    const plans = [
+      { amount: 2, days: 2, perDay: 1.5, totalProfit: 3 },
+      { amount: 30, days: 25, perDay: 2.4, totalProfit: 60 },
+      { amount: 299, days: 45, perDay: 13.2888889, totalProfit: 598 },
+      { amount: 600, days: 60, perDay: 20, totalProfit: 1200 },
+      { amount: 1200, days: 75, perDay: 32, totalProfit: 2400 }
+    ];
 
-//       let minROI, maxROI;
+    const activeInvestments = await Investment.findAll({
+      where: { status: "Active" }
+    });
 
-//       // Determine ROI based on plan, amount, and period
-//       if (plan === 0 && amount >= 10 && amount <= 30) {
-//         minROI = 0.5;
-//         maxROI = 1;
-//         if (period === 5) {
-//           maxROI = minROI;
-//         } else if (period === 10) {
-//           minROI = maxROI;
-//         }
-//       } else if (plan === 5 && amount >= 10 && amount <= 30) {
-//         minROI = 1;
-//         maxROI = 1.5;
-//         if (period === 10) {
-//           maxROI = minROI;
-//         } else if (period === 24) {
-//           minROI = maxROI;
-//         }
-//       } else if (plan === 10 && amount >= 100 && amount <= 500) {
-//         minROI = 1;
-//         maxROI = 1.5;
-//         if (period === 12) {
-//           maxROI = minROI;
-//         } else if (period === 24) {
-//           minROI = maxROI;
-//         }
-//       } else if (plan === 50 && amount >= 500 && amount <= 2500) {
-//         minROI = 1.5;
-//         maxROI = 2;
-//         if (period === 12) {
-//           maxROI = minROI;
-//         } else if (period === 48) {
-//           minROI = maxROI;
-//         }
-//       } else if (plan === 120 && amount >= 2500 && amount <= 10000) {
-//         minROI = 2;
-//         maxROI = 2.5;
-//         if (period === 12) {
-//           maxROI = minROI;
-//         } else if (period === 96) {
-//           minROI = maxROI;
-//         }
-//       } else if (plan === 340 && amount >= 10000) {
-//         minROI = 2;
-//         maxROI = 2.5;
-//         if (period === 12) {
-//           maxROI = minROI;
-//         } else if (period === 120) {
-//           minROI = maxROI;
-//         }
-//       } else {
-//         continue; // Skip invalid trade ranges
-//       }
+    if (!activeInvestments.length) {
+      console.log("No active investments found.");
+      return;
+    }
 
-//       const roiPercent = (Math.random() * (maxROI - minROI) + minROI) / 100;
-//       const roiAmount = parseFloat((amount * roiPercent).toFixed(2));
+    for (const investment of activeInvestments) {
+      const userId = investment.user_id;
+      const investId = investment.id;
+      const investedAmount = parseFloat(investment.amount);
 
-//       // ✅ Insert income entry
-//       const income = await Income.create({
-//         user_id: userId,
-//         user_id_fk: tradeId,
-//         amt: amount,
-//         comm: roiAmount,
-//         ttime: new Date(),
-//         credit_type: 0,
-//         level: 0,
-//         remarks: `Trade Income`,
-//       });
+      const plan = plans.find(p => p.amount === investedAmount);
+      if (!plan) {
+        console.log(` No matching plan for user ${userId} with amount ₹${investedAmount}`);
+        continue;
+      }
+
+      const totalIncome = await Income.sum('comm', {
+        where: {
+          user_id: userId,
+          remarks: 'Roi Income'
+        }
+      }) || 0;
+
+      if (totalIncome >= plan.totalProfit) {
+        console.log(` User ${userId} already received full ROI: ₹${totalIncome}`);
+        continue;
+      }
+
+      const today = moment().format('YYYY-MM-DD');
+      const existing = await Income.findOne({
+        where: {
+          user_id: userId,
+          remarks: 'Roi Income',
+          ttime: today
+        }
+      });
+
+      if (existing) {
+        console.log(`ℹ️ ROI already generated for user ${userId} on ${today}`);
+        continue;
+      }
+
+      const user = await User.findOne({ where: { id: userId } });
+
+      if (!user) {
+        console.log(` User not found with ID ${userId}`);
+        continue;
+      }
+
+      await Income.create({
+        user_id: userId,
+        user_id_fk: user.username, 
+        amt: investedAmount,
+        comm: plan.perDay,
+        remarks: "Roi Income",
+        ttime: today,
+        invest_id: investId
+      });
+
+      await addLevelIncome(userId, plan.perDay, investId);
+
+      console.log(`ROI given to user ${userId} (${user.username}): ₹${plan.perDay.toFixed(2)} on ${today}`);
+    }
+
+    console.log(" ROI income generation completed.");
+  } catch (error) {
+    console.error(" Error while generating ROI income:", error.message);
+  }
+};
 
 
-//        // ✅ Distribute commission to 5 levels
-//        const levels = await fetchFiveLevelUsers(userId);
-//        for (const levelUser of levels) {
-//            const commissionRate = COMMISSION_RATES[levelUser.level] || 0;
-//            const commissionAmount = parseFloat((roiAmount * commissionRate).toFixed(2));
-//            if (commissionAmount > 0) {
-//                try {
-//                    await Income.create({
-//                        user_id: levelUser.id,
-//                        user_id_fk: tradeId,
-//                        amt: amount,
-//                        comm: commissionAmount,
-//                        ttime: new Date(),
-//                        credit_type: 1,  // Commission
-//                        level: levelUser.level,
-//                        remarks: `ROI Income`,
-//                    });
-//                    console.log(`💰 Level ${levelUser.level} commission sent to user ${levelUser.id}: $${commissionAmount}`);
-//                } catch (error) {
-//                    console.error(`❌ Failed to add level ${levelUser.level} commission for user ${levelUser.id}:`, error);
-//                }
-//            }
-//        }
-
-//       // ✅ Update trade status after income created
-//       if (income) {
-//         await Trade.update(
-//           { status: "Complete" },
-//           { where: { id: tradeId } }
-//         );
-
-//         console.log(`✅ Income sent to user ${userId} from server ${serverHash}: $${roiAmount} (${(roiPercent * 100).toFixed(2)}%)`);
-//       }
-//     }
-
-//   } catch (error) {
-//     console.error('❌ Error processing daily profits:', error);
-//   }
-// };
-
-// // 🕛 Schedule daily at 12:00 PM
-// cron.schedule('0 12 * * *', async () => {
-//   console.log("⏳ Running scheduled daily profit cron...");
-//   await processDailyProfits();
-// });
-
-// // 🧪 Optional: Run immediately for testing
-// processDailyProfits();
+module.exports = {generateRoiIncome};

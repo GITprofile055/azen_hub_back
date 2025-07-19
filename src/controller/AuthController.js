@@ -84,7 +84,6 @@ const login = async (req, res) => {
     try {
       // Destructure username and password from the request body.
       const { email, password } = req.body;
-      console.log(email);
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
       if (!emailRegex.test(email)) {
@@ -96,7 +95,7 @@ const login = async (req, res) => {
          
       // Find the user using Sequelize
       const user = await User.findOne({ where: { email } });
-       
+
       if (!user) {
         return res.status(400).json({ error: "User not found!" });
 

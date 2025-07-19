@@ -1318,6 +1318,46 @@ const buyFund = async (req, res) => {
   }
 };
 
+const Deposit = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const {amount } = req.body;
+console.log('jii');
+    if (!userId) {
+      return res.status(200).json({ success: false, message: "User not authenticated!" });
+    }
 
-module.exports = { levelTeam,buyFund, direcTeam,getDirectTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef };
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.status(200).json({ success: false, message: "User not found!" });
+    }
+    
+    
+    const availableBal = await getAvailableBalance(userId);
+
+    if (parseFloat(amount) > availableBal) {
+      return res.json({ message: "Insufficient balance!" });
+    }
+    await Investment.create({
+    user_id_fk: user.username,
+        user_id: user.id,
+
+      amount: amount,
+       status:'Active',
+      sdate: new Date()
+    });
+    
+
+    return res.status(200).json({
+      success: true,
+      message: "Deposit request submitted successfully!"
+    });
+
+  } catch (error) {
+    console.error("Something went wrong:", error);
+    return res.status(200).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+module.exports = { levelTeam,buyFund, direcTeam,getDirectTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef,Deposit };
 
