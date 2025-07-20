@@ -28,7 +28,9 @@ router.get('/withreq', authMiddleware, UserController.withreq);
 router.post('/sendotp', authMiddleware, UserController.sendotp);
 router.post('/process-withdrawal', authMiddleware, UserController.processWithdrawal);
 router.get('/fetchserver', authMiddleware, UserController.fetchserver);
-
+router.post('/submitserver', authMiddleware, UserController.submitserver);
+router.get('/fetchrenew', authMiddleware, UserController.fetchrenew);
+router.post('/renew-server', authMiddleware, UserController.renewserver);
 router.get('/investments', authMiddleware, UserController.InvestHistory);
 router.get('/withdraw-history', authMiddleware, UserController.withdrawHistory);
 router.post('/changePassword', authMiddleware, UserController.ChangePassword);
@@ -39,11 +41,14 @@ router.post('/save-address/:networkType', authMiddleware, UserController.saveWal
 router.get('/getUserHistory', authMiddleware, transactionController.getUserHistory);
 router.get('/getDirectTeam', authMiddleware, UserController.getDirectTeam);
 
-
+router.post('/sendtrade', authMiddleware, UserController.sendtrade);
+router.get('/runingtrade', authMiddleware, UserController.runingtrade);
 // router.get('/Getinvate', authMiddleware, TeamController.Getinvate);
 // router.get("/team", authMiddleware ,TeamController.getTeam);
 // router.get('/list', authMiddleware,TeamController.listUsers);
 router.get('/serverc', authMiddleware, UserController.serverc);
+router.get('/totalRef', authMiddleware, UserController.totalRef);
+router.post('/getTradeIncomes', authMiddleware, UserController.tradeinc);
 router.get('/buyFund', authMiddleware, UserController.buyFund);
 router.post('/Deposit', authMiddleware, UserController.Deposit);
 

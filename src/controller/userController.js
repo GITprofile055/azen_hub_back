@@ -140,7 +140,33 @@ const fetchTeamRecursive = async (userId, allMembers = []) => {
   return allMembers;
 };
 
+const directIncome = async (userId, plan, amount) => {
+  try {
+    if (!userId) {
+      return;
+    }
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return;
+    }
+    const sponsor = await User.findOne({ where: { id: user.sponsor } });
+    if (!sponsor) {
+      return;
+    }
+    const direct = plan / 2;
+    await Income.create({
+      user_id: sponsor.id,
+      amt: amount,
+      comm: direct,
+      remarks: "Direct Income",
+      ttime: new Date(),
+      level: 0,
+    });
 
+  } catch (error) {
+    console.error("Server Error in directIncome:", error.message);
+  }
+};
 
 
 const levelTeam = async (req, res) => {
@@ -531,16 +557,368 @@ const myLevelTeam = async (userId, level = 3) => {
   return Object.values(ret).flat();
 };
 
+const submitserver = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(200).json({ success: false, message: "User not authenticated!" });
+    }
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.status(200).json({ success: false, message: "User not found!" });
+    }
+    const { plan, amount, period, period_end, days } = req.body;
+    const availableBal = await getAvailableBalance(userId);
 
+    if (parseFloat(availableBal) < parseFloat(plan)) {
+      return res.json({ success: false, message: "Insufficient balance!" });
+    }
+    const planRequirements = {
+      0: "null",
+      5: { direct: 2, team: 5 },
+      10: { direct: 5, team: 15 },
+      50: { direct: 10, team: 30 },
+      120: { direct: 12, team: 50 },
+      340: { direct: 15, team: 80 }
+    };
+
+    const { direct: requiredDirect, team: requiredTeam } = planRequirements[plan];
+
+    const directUsers = await User.findAll({
+      where: { sponsor: userId },
+      attributes: ['id']
+    });
+
+    const teamMembers = await myLevelTeam(userId);
+
+    if (directUsers.length < requiredDirect) {
+      return res.status(200).json({
+        success: false,
+        message: `You need at least ${requiredDirect} direct users to purchase this plan. Currently, you have ${directUsers.length} direct users.`
+      });
+    }
+
+    if (teamMembers.length < requiredTeam) {
+      return res.status(200).json({
+        success: false,
+        message: `You need at least ${requiredTeam} total team members to purchase this plan. Currently, you have ${teamMembers.length} team members.`
+      });
+    }
+    const checkserver = await Investment.findOne({
+      where: {
+        plan: plan,
+        user_id: userId
+      }
+    });
+    if (checkserver && checkserver.plan === plan) {
+      return res.status(200).json({ success: false, message: "You can't buy this Server again!" });
+    }
+    const serverhash = crypto.randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
+
+    const server = await Investment.create({
+      user_id: userId,
+      plan: plan,
+      invest_amount: amount,
+      period: period,
+      period_end: period_end,
+      amount: plan,
+      serverhash: serverhash,
+      days: days,
+      sdate: new Date()
+    });
+
+    updateUserStatus(user);
+
+    await directIncome(userId, parseFloat(plan), parseFloat(plan));
+    return res.status(200).json({ success: true, server: server });
+
+  } catch (error) {
+    console.error("Something went wrong:", error);
+    return res.status(200).json({ success: false, message: "Internal Server Error" });
+  }
+};
 
 const { Op } = require("sequelize");
 
+const fetchrenew = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(200).json({ success: false, message: "User not authenticated!" });
+    }
+
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.status(200).json({ success: false, message: "User not found!" });
+    }
+
+    const investments = await Investment.findAll({
+      where: {
+        user_id: userId,
+        plan: { [Op.ne]: 0 }
+      },
+      attributes: ['serverhash', 'plan', 'sdate', 'amount']
+    });
+
+    const uniquePlans = [...new Set(investments.map(inv => inv.plan))];
+    const servers = await Server.findAll({
+      where: {
+        plan: { [Op.in]: uniquePlans }
+      },
+      attributes: ['plan', 'days']
+    });
+
+    const serverDaysMap = {};
+    servers.forEach(server => {
+      serverDaysMap[server.plan] = server.days;
+    });
+
+    const now = new Date();
+    const expiredInvestments = investments.filter(inv => {
+      const sdate = new Date(inv.sdate);
+      const planDays = serverDaysMap[inv.plan] || 0;
+      const diffInDays = Math.floor((now - sdate) / (1000 * 60 * 60 * 24));
+      return diffInDays > planDays;
+    });
+
+    return res.status(200).json({ success: true, server: expiredInvestments });
+  } catch (error) {
+    console.error("Something went wrong:", error);
+    return res.status(200).json({ success: false, message: "Internal Server Error" });
+  }
+};
 
 
 
+const renewserver = async (req, res) => {
+  // console.log(req.body);
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(200).json({ success: false, message: "User not authenticated!" });
+    }
+
+    const { serverhash, amount, plan } = req.body;
+
+    if (!serverhash || !amount) {
+      return res.json({ message: "Missing serverhash or amount!" });
+    }
+
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.status(200).json({ success: false, message: "User not found!" });
+    }
+
+    // Check user balance
+    const availableBal = await getAvailableBalance(userId);
+    if (parseFloat(availableBal) < parseFloat(amount)) {
+      return res.json({ success: false, message: "Insufficient balance!" });
+    }
+
+    // Find server
+    const server = await Investment.findOne({
+      where: {
+        serverhash: serverhash,
+        user_id: userId
+      }
+    });
+
+    if (!server) {
+      return res.status(200).json({ success: false, message: "Server not found!" });
+    }
+
+    // Update server sdate to current time
+    server.sdate = new Date();
+    await Investment.increment(
+      { amount: parseFloat(amount) },
+      { where: { serverhash, user_id: userId } }
+    );
+
+    // server.invest_amount = parseFloat(server.invest_amount) + parseFloat(amount);
+    await server.save();
+
+    await directIncome(userId, parseFloat(amount), parseFloat(amount));
+
+    return res.status(200).json({ success: true, message: "Server renewed successfully", server });
+
+  } catch (error) {
+    console.error("Something went wrong:", error);
+    return res.status(200).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+const fetchservers = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(200).json({ success: false, message: "User not authenticated!" });
+    }
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.status(200).json({ success: false, message: "User not found!" });
+    }
+
+    const blockedTrades = await Trade.findAll({
+      where: {
+        user_id: userId,
+        plan: 0
+      },
+      attributes: ['selectedServer']
+    });
+
+    const blockedServerHashes = blockedTrades.map(trade => trade.selectedServer);
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const server = await Investment.findAll({
+      where: {
+        user_id: userId,
+        serverhash: {
+          [Op.notIn]: blockedServerHashes
+        },
+        sdate: {
+          [Op.gte]: thirtyDaysAgo // ✅ Newer than 30 days ag
+        }
+      },
+      order: [
+        ['sdate', 'DESC']
+      ],
+      limit: 5,
+      attributes: ['serverhash', 'plan', 'sdate', 'invest_amount', 'amount', 'period', 'period_end'],
+    });
+
+    return res.status(200).json({
+      success: true,
+      server
+    });
+  } catch (error) {
+    console.error("Something went wrong:", error);
+    return res.status(200).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+const sendtrade = async (req, res) => {
+  // console.log(req.body);
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.json({ message: "User not authenticated!" });
+    }
+    const { symbol, selectedServer, amount, period, buyInsurance, plan } = req.body.postData;
+    if (!selectedServer || !amount) {
+      return res.json({ message: "Missing selectedServer or amount!" });
+    }
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.json({ message: "User not found!" });
+    }
+    const availableBal = await getAvailableBalance(userId);
+    if (parseFloat(availableBal) < parseFloat(amount)) {
+      return res.json({ success: false, message: "Insufficient balance!" });
+    }
+    const server = await Investment.findOne({
+      where: {
+        serverhash: selectedServer,
+        user_id: userId
+      }
+    });
+
+    if (!server) {
+      return res.status(200).json({ success: false, message: "Server not found!" });
+    }
+
+    let minAmount = 0;
+
+    if (plan == 0 || plan == 5) {
+      minAmount = 10;  // Plan 0, 'free' or 5 requires minimum $10
+    } else if (plan == 10) {
+      minAmount = 100;  // Plan 10 requires minimum $100
+    } else if (plan == 50) {
+      minAmount = 500;  // Plan 50 requires minimum $500
+    } else if (plan == 120) {
+      minAmount = 2500;  // Plan 120 requires minimum $2500
+    } else if (plan == 340) {
+      minAmount = 10000;  // Plan 340 requires minimum $10000
+    } else {
+      return res.json({ success: false, message: "Invalid plan amount!" });
+    }
+
+    // Ensure the amount is greater than the required minimum for the plan
+    if (parseFloat(amount) < minAmount) {
+      return res.json({ success: false, message: 'The amount should be greater than or equal to $${minAmount} for this plan.' });
+    }
 
 
+    const now = new Date();
+    const buyser = await Trade.findAll({
+      where: {
+        selectedServer: selectedServer,
+        user_id: userId,
+        endtime: {
+          [Op.gt]: now,
+        }
+      }
+    });
+    if (buyser.length > 0) {
+      return res.status(200).json({ success: false, message: "This server is already running!" });
+    }
+    server.sdate = new Date();
+    const end = new Date(now.getTime() + parseFloat(period) * 60 * 60 * 1000);
+    await Trade.create({
+      user_id: userId,
+      currency: symbol,
+      selectedServer,
+      amount,
+      period,
+      plan,
+      insurance: buyInsurance,
+      status: 'Running',
+      entrytime: now,
+      endtime: end,
+    });
 
+    return res.status(200).json({ success: true, message: "Server renewed successfully", server });
+
+  } catch (error) {
+    console.error("Something went wrong:", error);
+    return res.status(200).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+const runingtrade = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(200).json({ success: false, message: "Unauthorized user" });
+    }
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.status(200).json({ success: false, message: "User not found!" });
+    }
+    const now = new Date();
+
+    const expiredTrades = await Trade.findAll({
+      where: {
+        user_id: userId,
+        endtime: {
+          [Op.lt]: now // less than current time
+        }
+      }
+    });
+    const runingTrades = await Trade.findAll({
+      where: {
+        user_id: userId,
+        endtime: { [Op.gt]: now }
+      }
+    });
+
+    return res.status(200).json({ success: true, runingTrades, expiredTrades });
+  } catch (error) {
+    console.error("Something went wrong:", error);
+    return res.status(200).json({ success: false, message: "Internal Server Error" });
+  }
+};
 
 const serverc = async (req, res) => {
   try {
@@ -836,12 +1214,68 @@ const PaymentPassword = async (req, res) => {
 };
 
 
+const tradeinc = async (req, res) => {
+  try {
+    const { tradeIds } = req.body;
+    const incomes = await Income.findAll({
+      where: {
+        user_id_fk: tradeIds,
+        remarks: "Trade Income"
+      }
+    });
+    res.status(200).json({ success: true, incomes });
+  } catch (error) {
+    console.error("Error fetching trade incomes:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
 
 
+const totalRef = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized user" });
+    }
 
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found!" });
+    }
 
+    const serverRef = await Income.sum('comm', {
+      where: {
+        user_id: userId,
+        remarks: {
+          [Op.in]: ['Direct Income', 'ROI Income'],
+        },
+      },
+    })
 
+    return res.status(200).json({
+      success: true,
+      totalIncome: serverRef || 0,
+    });
 
+  } catch (error) {
+    console.error("❌ Internal Server Error:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+const updateUserStatus = async (user) => {
+  try {
+    if (user && user.status === 'Pending') {
+      await User.update(   
+        { status: 'Active' },
+        { where: { id: user.id } }
+      );
+      // console.log("User status updated to Active");
+    }
+  } catch (error) {
+    console.error("Failed to update user status:", error);
+  }
+};
 
 
 const buyFund = async (req, res) => {
@@ -883,7 +1317,7 @@ const buyFund = async (req, res) => {
     });
   }
 };
-// sagar
+
 const Deposit = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -925,5 +1359,5 @@ console.log('jii');
   }
 };
 
-module.exports = { levelTeam,buyFund, direcTeam,getDirectTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, getAvailableBalance,  serverc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword,Deposit };
+module.exports = { levelTeam,buyFund, direcTeam,getDirectTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef,Deposit };
 
