@@ -48,6 +48,7 @@ router.get('/serverc', authMiddleware, UserController.serverc);
 router.get('/totalRef', authMiddleware, UserController.totalRef);
 router.post('/getTradeIncomes', authMiddleware, UserController.tradeinc);
 router.get('/buyFund', authMiddleware, UserController.buyFund);
+router.put('/updateProfile', authMiddleware, UserController.updateProfile);
 
 // router.post('/register', (req, res) => {
 //   res.json({ message: 'Welcome to regiset' });

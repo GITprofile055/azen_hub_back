@@ -1,5 +1,4 @@
 const User = require('../models/User');
-const bcrypt = require('bcryptjs');
 const Income = require('../models/Income');
 const Withdraw = require('../models/Withdraw');
 const BuyFund = require('../models/BuyFunds');
@@ -10,6 +9,7 @@ const axios = require('axios');
 const sequelize = require('../config/connectDB');
 const Investment = require('../models/Investment');
 const crypto = require('crypto');
+const bcrypt = require("bcryptjs");
 
 
 const available_balance = async (req, res) => {
@@ -129,7 +129,7 @@ const getDirectTeam = async (req, res) => {
 const fetchTeamRecursive = async (userId, allMembers = []) => {
   const directMembers = await User.findAll({
     where: { sponsor: userId },
-    attributes: ['id', 'name', 'username', 'email', 'phone', 'sponsor','active_status']
+    attributes: ['id', 'name', 'username', 'email', 'phone', 'sponsor', 'active_status']
   });
 
   for (const member of directMembers) {
@@ -323,7 +323,7 @@ const dynamicUpiCallback = async (req, res) => {
 
 
 const withfatch = async (req, res) => {
-  try { 
+  try {
     const userId = req.user?.id;
     if (!userId) {
       return res.status(200).json({ success: false, message: "User not authenticated!" });
@@ -468,8 +468,8 @@ const sendotp = async (req, res) => {
 const processWithdrawal = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const { wallet, amount, verificationCode, type } = req.body;
-
+    const { wallet, amount, type, transaction_password } = req.body;
+    console.log(transaction_password);
     if (!userId) {
       return res.status(200).json({ success: false, message: "User not authenticated!" });
     }
@@ -478,22 +478,17 @@ const processWithdrawal = async (req, res) => {
     if (!user) {
       return res.status(200).json({ success: false, message: "User not found!" });
     }
-    const [otpRecord] = await sequelize.query(
-      'SELECT * FROM password_resets WHERE email = ? AND token = ? ORDER BY created_at DESC LIMIT 1',
-      {
-        replacements: [user.email, verificationCode],
-        type: sequelize.QueryTypes.SELECT
-      }
-    );
-
-    if (!otpRecord) {
-      return res.json({ message: "Invalid or expired OTP!" });
+    // ✅ Verify transaction password
+    const isPasswordMatch = await bcrypt.compare(transaction_password, user.tpassword);
+    console.log(isPasswordMatch);
+    if (!isPasswordMatch) {
+      return res.status(200).json({ success: false, message: "Incorrect transaction password!" });
     }
     const availableBal = await getAvailableBalance(userId);
 
-    if (parseFloat(amount) > availableBal) {
-      return res.json({ message: "Insufficient balance!" });
-    }
+    // if (parseFloat(amount) > availableBal) {
+    //   return res.json({ message: "Insufficient balance!" });
+    // }
     await Withdraw.create({
       user_id: userId,
       user_id_fk: user.username,
@@ -510,7 +505,8 @@ const processWithdrawal = async (req, res) => {
 
   } catch (error) {
     console.error("Something went wrong:", error);
-    return res.status(200).json({ success: false, message: "Internal Server Error" });
+
+    return res.status(200).json({ success: false, message: "Internal Server Error", details: error.message });
   }
 };
 
@@ -1266,7 +1262,7 @@ const totalRef = async (req, res) => {
 const updateUserStatus = async (user) => {
   try {
     if (user && user.status === 'Pending') {
-      await User.update(   
+      await User.update(
         { status: 'Active' },
         { where: { id: user.id } }
       );
@@ -1318,6 +1314,145 @@ const buyFund = async (req, res) => {
   }
 };
 
+// withdraw new 
 
-module.exports = { levelTeam,buyFund, direcTeam,getDirectTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef };
+
+
+// const withdrawRequestPrinciple = async (req, res) => {
+//   try {
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//       return res.status(422).json({ success: false, message: errors.array()[0].msg });
+//     }
+
+//     const { amount, paymentMode, transaction_password } = req.body;
+//     const user = req.user; // assuming auth middleware sets req.user
+
+//     if (!user) {
+//       return res.status(401).json({ success: false, message: "Unauthorized" });
+//     }
+
+//     const balance = user.principleBalance; // assume this field is populated
+//     const account = user.trx_address;
+
+//     if (balance < amount) {
+//       return res.status(400).json({ success: false, message: "Insufficient balance in your account." });
+//     }
+
+//     const today = new Date().toISOString().split("T")[0];
+
+//     const existingWithdraw = await Withdraw.findOne({
+//       user_id: user._id,
+//       wdate: today
+//     });
+
+//     if (existingWithdraw) {
+//       return res.status(400).json({ success: false, message: "Only one withdraw request per day is allowed." });
+//     }
+
+//     const totalToday = await Withdraw.aggregate([
+//       {
+//         $match: {
+//           user_id: user._id,
+//           wdate: today
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           total: { $sum: "$amount" }
+//         }
+//       }
+//     ]);
+
+//     const todaySum = totalToday[0]?.total || 0;
+//     if (todaySum + amount >= 500) {
+//       return res.status(400).json({ success: false, message: "Daily withdraw limit of $500 exceeded." });
+//     }
+
+//     const pendingWithdraw = await Withdraw.findOne({
+//       user_id: user._id,
+//       status: "Pending"
+//     });
+
+//     if (pendingWithdraw) {
+//       return res.status(400).json({ success: false, message: "Withdraw request already exists." });
+//     }
+
+//     if (!account) {
+//       return res.status(400).json({ success: false, message: "Please update your USDT payment address or bank details." });
+//     }
+
+//     const isPasswordValid = await bcrypt.compare(transaction_password, user.tpassword);
+//     if (!isPasswordValid) {
+//       return res.status(400).json({ success: false, message: "Invalid transaction password." });
+//     }
+
+//     const withdrawData = new Withdraw({
+//       txn_id: require("crypto").createHash("md5").update(Date.now().toString() + Math.random()).digest("hex"),
+//       user_id: user._id,
+//       user_id_fk: user.username,
+//       amount: amount,
+//       account: account,
+//       payment_mode: paymentMode,
+//       status: "Pending",
+//       walletType: 2,
+//       wdate: today
+//     });
+
+//     const savedWithdraw = await withdrawData.save();
+
+//     // Update user package
+//     user.package = user.package - amount;
+//     await user.save();
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Withdraw request submitted successfully.",
+//       withdralId: savedWithdraw._id
+//     });
+
+//   } catch (err) {
+//     console.error("Withdraw Error:", err.message);
+//     return res.status(500).json({ success: false, message: "Server error: " + err.message });
+//   }
+// };
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    console.log("User ID from token:", userId);
+    console.log("Incoming Data:", req.body);
+
+    const { name, email } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required.' });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { name, email },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'Profile updated successfully.',
+      user: updatedUser,
+    });
+
+  } catch (err) {
+    console.error('Profile update error:', err.message, err.stack);
+    return res.status(500).json({ status: 'error', message: 'Server Error' });
+  }
+};
+
+
+
+module.exports = { levelTeam, buyFund, direcTeam, getDirectTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef,updateProfile };
 
