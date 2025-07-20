@@ -46,6 +46,7 @@ router.get('/getDirectTeam', authMiddleware, UserController.getDirectTeam);
 router.get('/serverc', authMiddleware, UserController.serverc);
 router.get('/buyFund', authMiddleware, UserController.buyFund);
 router.post('/Deposit', authMiddleware, UserController.Deposit);
+router.put('/updateProfile', authMiddleware, UserController.updateProfile);
 
 // router.post('/register', (req, res) => {
 //   res.json({ message: 'Welcome to regiset' });
