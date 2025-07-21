@@ -34,7 +34,8 @@ const register = async (req, res) => {
         }
   
         // Generate username & transaction password
-        const username = Math.random().toString(36).substring(2, 10);
+        // const username = Math.random().toString(36).substring(2, 10);
+        const username = Math.floor(1000000 + Math.random() * 9000000);
         const tpassword = Math.random().toString(36).substring(2, 8);
   
         // Hash passwords
