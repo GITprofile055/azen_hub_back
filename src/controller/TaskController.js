@@ -22,7 +22,6 @@ const Income = require('../models/Income');
             icon: task.icon,
             status: task.userTasks?.length ? task.userTasks[0].status : "not_started",
             }));
-            console.log(formattedTasks);
           res.json(formattedTasks);
     } catch (error) {
       console.error("Error fetching tasks:", error);
@@ -32,14 +31,22 @@ const Income = require('../models/Income');
 
 const startTask = async (req, res) => {
     try {
-        const { id, task_id } = req.body;
+        const userId = req.user?.id;  
+        if (!userId) {
+      return res.status(200).json({ success: false, message: "User not authenticated!" });
+    }
 
+    const user = await User.findOne({ where: { id: userId } });
+
+    if (!user) {
+      return res.status(200).json({ success: false, message: "User not found!" });
+    }
+        const {task_id } = req.body;
         const [userTask, created] = await UserTask.findOrCreate({
-            where: { telegram_id, task_id },
+            where: { user_id: userId, task_id: task_id },
             defaults: { status: "pending" },
           });
           res.json({ message: created ? "Task started" : "Task already in progress" });
-
     } catch (error) {
         res.status(500).json({ error: "Error starting task" });
     }
