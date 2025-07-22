@@ -332,7 +332,7 @@ const listUsers = async (req, res) => {
 
 
 const Getinvate = async (req, res) => { 
-    try {
+    try {   
       const userId = req.user?.id;
       
       if (!userId) {
@@ -341,7 +341,7 @@ const Getinvate = async (req, res) => {
       
       const user = await User.findOne({ 
         where: { id: userId },
-        attributes: ['username'] // Fetch only the username
+        attributes: ['username'] // Fetch only the use  rname
       });
       
       if (!user) {

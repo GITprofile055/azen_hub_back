@@ -7,7 +7,7 @@ const cronController = require('../cron/cronController');
 
 
 const authMiddleware = require("../middleware/authMiddleware"); // JWT Auth Middleware
-// const TeamController = require("../controller/TeamController"); 
+const TeamController = require("../controller/TeamController"); 
 const User = require('../models/User');
 
 router.get('/generateRoiIncome', cronController.generateRoiIncome);
@@ -44,7 +44,7 @@ router.get('/getDirectTeam', authMiddleware, UserController.getDirectTeam);
 router.post('/sendtrade', authMiddleware, UserController.sendtrade);
 router.get('/runingtrade', authMiddleware, UserController.runingtrade);
 // router.get('/Getinvate', authMiddleware, TeamController.Getinvate);
-// router.get("/team", authMiddleware ,TeamController.getTeam);
+router.get("/team", authMiddleware ,TeamController.getTeam);
 // router.get('/list', authMiddleware,TeamController.listUsers);
 router.get('/serverc', authMiddleware, UserController.serverc);
 router.get('/totalRef', authMiddleware, UserController.totalRef);

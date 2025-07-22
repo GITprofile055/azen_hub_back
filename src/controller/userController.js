@@ -107,7 +107,7 @@ const getDirectTeam = async (req, res) => {
 
     const directTeam = await User.findAll({
       where: { sponsor: loginUserId },
-      attributes: ['id', 'name', 'username', 'email', 'phone', 'sponsor'],
+      attributes: ['id', 'name', 'username', 'email', 'phone', 'sponsor','active_status'],
       order: [['id', 'DESC']]
     });
 
@@ -1420,10 +1420,6 @@ const buyFund = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-
-    console.log("User ID from token:", userId);
-    console.log("Incoming Data:", req.body);
-
     const { name, email } = req.body;
 
     if (!name || !email) {
@@ -1431,9 +1427,9 @@ const updateProfile = async (req, res) => {
     }
 
     const updatedUser = await User.findByIdAndUpdate(
-      // userId,
-      { name, email },
-      { new: true }
+      userId,                  // ✅ Correct first argument
+      { name, email },         // ✅ Update object
+      { new: true }            // ✅ Return the updated document
     );
 
     if (!updatedUser) {
@@ -1451,6 +1447,7 @@ const updateProfile = async (req, res) => {
     return res.status(500).json({ status: 'error', message: 'Server Error' });
   }
 };
+
 
 
 const Deposit = async (req, res) => {
