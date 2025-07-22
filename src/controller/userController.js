@@ -1494,6 +1494,44 @@ const Deposit = async (req, res) => {
   }
 };
 
+const Earning = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "User not authenticated!" });
+    }
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found!" });
+    }
+    const lastPackage = await Investment.findOne({
+      where: {
+        user_id_fk: user.username,
+        user_id: user.id,
+        status: 'Active'
+      },
+      order: [['sdate', 'DESC']]
+    });
+    const income = await Income.sum('comm', {
+  where: {
+    user_id: userId,
+    remarks: {
+      [Op.in]: ['Direct Income', 'ROI Income','Level Bonus'],
+    },
+  },
+});
+    return res.status(200).json({
+      success: true,
+      package: lastPackage,
+      income :income,
+      message: "Last active investment fetched successfully!"
+    });
+  } catch (error) {
+    console.error("Something went wrong:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
 
-module.exports = { levelTeam,buyFund, direcTeam,getDirectTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef,updateProfile,Deposit };
+
+module.exports = { levelTeam,buyFund, direcTeam,getDirectTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef,updateProfile,Deposit,Earning };
 

@@ -3,6 +3,7 @@ const router = express.Router();
 const authController = require('../controller/AuthController');
  const UserController = require('../controller/userController');
  const transactionController = require('../controller/transactionController');
+ const TaskController = require('../controller/TaskController');
 const cronController = require('../cron/cronController');
 
 
@@ -52,9 +53,18 @@ router.post('/getTradeIncomes', authMiddleware, UserController.tradeinc);
 router.get('/buyFund', authMiddleware, UserController.buyFund);
 router.post('/Deposit', authMiddleware, UserController.Deposit);
 router.post('/updateProfile', authMiddleware, UserController.updateProfile);
-
+router.get('/earning', authMiddleware, UserController.Earning);
 // router.post('/register', (req, res) => {
 //   res.json({ message: 'Welcome to regiset' });
 // });
+
+router.get('/getTasks', authMiddleware,TaskController.getTasks);
+router.post('/startTask', authMiddleware, TaskController.startTask);
+router.post('/claimTask', authMiddleware ,TaskController.claimTask);
+
+// router.post('/connect', AuthController.otp);
+router.get('/baycoin', authMiddleware, TaskController.daycoin);
+router.get('/claim-day', authMiddleware , TaskController.claimday);
+router.post('/claim-reward',authMiddleware,TaskController.claimtoday);
 
 module.exports = router;

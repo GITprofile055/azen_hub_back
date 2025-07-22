@@ -4,7 +4,6 @@ const sequelize = require('../config/connectDB');
 const User = sequelize.define('User', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     name: { type: DataTypes.STRING, allowNull: true },
-    // telegram_id: {type: DataTypes.BIGINT, allowNull: true },
     username: { type: DataTypes.STRING, allowNull: false },
     sponsor: { type: DataTypes.INTEGER, allowNull: true }, // Parent user (sponsor)
     active_status: { type: DataTypes.ENUM('Active', 'Pending'), defaultValue: 'Pending' },
