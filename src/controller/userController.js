@@ -1417,34 +1417,39 @@ const buyFund = async (req, res) => {
 //     return res.status(500).json({ success: false, message: "Server error: " + err.message });
 //   }
 // };
+
 const updateProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
     const { name, email } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ message: 'Name and email are required.' });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,                  // ✅ Correct first argument
-      { name, email },         // ✅ Update object
-      { new: true }            // ✅ Return the updated document
+    const [updated] = await User.update(
+      { name, email },
+      { where: { id: userId } }
     );
 
-    if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found.' });
+    if (updated === 0) {
+      return res.status(404).json({ message: 'User not found or no changes made.' });
     }
 
-    return res.status(200).json({
+    const updatedUser = await User.findByPk(userId);
+
+    res.status(200).json({
       status: 'success',
       message: 'Profile updated successfully.',
-      user: updatedUser,
+      user: updatedUser
     });
 
   } catch (err) {
-    console.error('Profile update error:', err.message, err.stack);
-    return res.status(500).json({ status: 'error', message: 'Server Error' });
+    console.error('Update error:', err.message);
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ message: 'Email already exists.' });
+    }
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
