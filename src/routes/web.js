@@ -9,6 +9,7 @@ const cronController = require('../cron/cronController');
 
 const authMiddleware = require("../middleware/authMiddleware"); // JWT Auth Middleware
 const TeamController = require("../controller/TeamController"); 
+const IncomeController = require("../controller/IncomeController");
 const User = require('../models/User');
 
 router.get('/generateRoiIncome', cronController.generateRoiIncome);
@@ -35,6 +36,7 @@ router.post('/renew-server', authMiddleware, UserController.renewserver);
 router.get('/investments', authMiddleware, UserController.InvestHistory);
 router.get('/withdraw-history', authMiddleware, UserController.withdrawHistory);
 router.post('/changePassword', authMiddleware, UserController.ChangePassword);
+router.post('/bindMail', authMiddleware, IncomeController.BindMail);
 
 router.get('/fetchservers', authMiddleware, UserController.fetchservers);
 router.post('/save-address/:networkType', authMiddleware, UserController.saveWalletAddress);

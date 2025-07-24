@@ -71,6 +71,9 @@ const generateRoiIncome = async () => {
         console.log(` User not found with ID ${userId}`);
         continue;
       }
+      if(user.bind_device === 0){
+        return;
+      }
 
       await Income.create({
         user_id: userId,

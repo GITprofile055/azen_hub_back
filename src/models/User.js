@@ -20,6 +20,10 @@ const User = sequelize.define('User', {
         allowNull: false,
         unique: true
     },
+    bind_device:{
+        type: DataTypes.ENUM('0', '1'),
+       allowNull: true,
+    },
     username: {
         type: DataTypes.STRING,
         allowNull: false,
