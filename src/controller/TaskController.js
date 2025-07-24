@@ -20,6 +20,7 @@ const Income = require('../models/Income');
             name: task.name,
             reward: task.reward,
             icon: task.icon,
+            link: task.link,
             status: task.userTasks?.length ? task.userTasks[0].status : "not_started",
             }));
           res.json(formattedTasks);
@@ -35,13 +36,11 @@ const startTask = async (req, res) => {
         if (!userId) {
       return res.status(200).json({ success: false, message: "User not authenticated!" });
     }
-
     const user = await User.findOne({ where: { id: userId } });
-
     if (!user) {
       return res.status(200).json({ success: false, message: "User not found!" });
     }
-        const {task_id } = req.body;
+    const {task_id } = req.body;
         const [userTask, created] = await UserTask.findOrCreate({
             where: { user_id: userId, task_id: task_id },
             defaults: { status: "pending" },
@@ -54,31 +53,34 @@ const startTask = async (req, res) => {
 
     const claimTask = async (req, res) => {
     try {
-        const { telegram_id, task_id } = req.body;
+      const userId = req.user?.id;  
+        if (!userId) {
+      return res.status(200).json({ success: false, message: "User not authenticated!" });
+    }
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.status(200).json({ success: false, message: "User not found!" });
+    }
+        const { task_id } = req.body;
         const task = await Task.findOne({ where: {id:task_id},attributes:['reward']});
         if (!task) {
-            return res.status(404).json({ message: "Task not found" });
-        }        
-        const user = await TelegramUser.findOne({ where: { telegram_id: telegram_id} });
-        // console.log(user);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
+            return res.status(200).json({success: false, message: "Task not found" });
         }
-        const Euser = await User.findOne({where:{telegram_id:telegram_id}});
-        if(!Euser){
-            return res.status(404).json({ message: "Account Not Connected" });
-        }
-        const existingTask = await UserTask.findOne({ where: { task_id: task_id, status: "completed", telegram_id: telegram_id } });
+        const existingTask = await UserTask.findOne({ where: { task_id: task_id, status: "completed", user_id: userId} });
         if (existingTask) {
-            return res.status(400).json({ message: "You can't Claim Again" });
+            return res.status(200).json({success: false, message: "You can't Claim Again" });
         }
-        await TelegramUser.update(
-            { coin_balance: user.coin_balance + task.reward },
-            { where: { telegram_id: telegram_id } }
-        );
-        await UserTask.update({ status: "completed", bonus: task.reward }, { where: { telegram_id: telegram_id, task_id:task_id} });
+        await Income.create({
+            comm: task.reward,
+            amt: task.reward,
+            user_id:userId,
+            user_id_fk: user.username,
+            remarks: "Task Income",
+            ttime:new Date(),            
+         });
+        await UserTask.update({ status: "completed", bonus: task.reward }, { where: {user_id: userId, task_id:task_id} });
         
-        res.json({ message: "Task claimed successfully" });
+        res.json({ message: "Task claimed successfully", Reward:task.reward });
 
     } catch (error) {
         res.status(500).json({ error: "Error starting task" });
@@ -126,7 +128,9 @@ const startTask = async (req, res) => {
        }       
     const result = await Income.findAll({where: { user_id: user.id , remarks:"Daily Income"},order: [['created_at', 'DESC']],});
       const todayr = await Income.sum('amt', {
-  where: { user_id: user.id, remarks: "Daily Income" }
+  where: { user_id: user.id, remarks: {
+      [Op.or]: ["Daily Income", "Task Income"]
+    } }
 });
     const lastClaimed = result.length > 0 ? result[0].created_at : null; // Extract last claimed date
         const userClaimsCount = result.length;
@@ -180,7 +184,7 @@ const startTask = async (req, res) => {
             remarks: "Daily Income",
             ttime:new Date(),            
          });
-        return res.json({ success: true, message: "🎉 Reward Claimed Successfully!" });
+        return res.json({ success: true, message: "🎉 Reward Claimed Successfully!", Reward:coin });
 
     } catch (error) {
         console.error("Error in claiming reward:", error);

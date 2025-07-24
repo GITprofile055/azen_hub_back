@@ -1143,6 +1143,7 @@ const getUserDetails = async (req, res) => {
       email: user.email, // Assuming 'email' field exists in the user model
       bep20: user.usdtTrc20,  // Fetching and including 'bep20' address
       trc20: user.usdtBep20,
+      bind_device: user.bind_device,
       message: "User details fetched successfully"
     });
   } catch (error) {
@@ -1518,7 +1519,7 @@ const Earning = async (req, res) => {
   where: {
     user_id: userId,
     remarks: {
-      [Op.in]: ['Direct Income', 'ROI Income','Level Bonus'],
+      [Op.in]: ['Direct Income', 'ROI Income','Level Bonus', 'Task Income','Daily Income'],
     },
   },
 });
