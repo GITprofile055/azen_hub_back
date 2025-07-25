@@ -10,7 +10,7 @@ const sequelize = require('../config/connectDB');
 const Investment = require('../models/Investment');
 const crypto = require('crypto');
 const bcrypt = require("bcryptjs");
-
+const {sendEmail} = require("../services/userServices");
 
 const available_balance = async (req, res) => {
   try {
@@ -140,33 +140,6 @@ const fetchTeamRecursive = async (userId, allMembers = []) => {
   return allMembers;
 };
 
-const directIncome = async (userId, plan, amount) => {
-  try {
-    if (!userId) {
-      return;
-    }
-    const user = await User.findOne({ where: { id: userId } });
-    if (!user) {
-      return;
-    }
-    const sponsor = await User.findOne({ where: { id: user.sponsor } });
-    if (!sponsor) {
-      return;
-    }
-    const direct = plan / 2;
-    await Income.create({
-      user_id: sponsor.id,
-      amt: amount,
-      comm: direct,
-      remarks: "Direct Income",
-      ttime: new Date(),
-      level: 0,
-    });
-
-  } catch (error) {
-    console.error("Server Error in directIncome:", error.message);
-  }
-};
 
 
 const levelTeam = async (req, res) => {
@@ -457,6 +430,10 @@ const sendotp = async (req, res) => {
         type: sequelize.QueryTypes.INSERT,
       }
     );
+    const emailSent =  await sendEmail(email, "Your One-Time Password", {
+            name: user.name || "User",
+            code: otp       
+           });
     return res.status(200).json({ success: true, message: "OTP sent successfully" });
 
   } catch (error) {
@@ -1464,15 +1441,11 @@ const Deposit = async (req, res) => {
     if (!userId) {
       return res.status(200).json({ success: false, message: "User not authenticated!" });
     }
-
     const user = await User.findOne({ where: { id: userId } });
     if (!user) {
       return res.status(200).json({ success: false, message: "User not found!" });
-    }
-    
-    
+    }    
     const availableBal = await getAvailableBalance(userId);
-
     if (parseFloat(amount) > availableBal) {
       return res.json({ message: "Insufficient balance!" });
     }
@@ -1485,7 +1458,7 @@ const Deposit = async (req, res) => {
       sdate: new Date()
     });
     
-
+    await directIncome(userId, parseFloat(amount), parseFloat(amount));
     return res.status(200).json({
       success: true,
       message: "Deposit request submitted successfully!"
@@ -1494,6 +1467,35 @@ const Deposit = async (req, res) => {
   } catch (error) {
     console.error("Something went wrong:", error);
     return res.status(200).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+ 
+const directIncome = async (userId, amount) => {
+  try {
+    if (!userId) {
+      return;
+    }
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return;
+    }
+    const sponsor = await User.findOne({ where: { id: user.sponsor } });
+    if (!sponsor) {
+      return;
+    }
+    const direct = amount*5/100;
+    await Income.create({
+      user_id: sponsor.id,
+      amt: amount,
+      comm: direct,
+      remarks: "Direct Income",
+      ttime: new Date(),
+      level: 0,
+    });
+
+  } catch (error) {
+    console.error("Server Error in directIncome:", error.message);
   }
 };
 
