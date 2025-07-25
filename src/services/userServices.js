@@ -2,8 +2,7 @@ const { User, Investment,Income,Withdraw,Machine} = require("../models"); // Adj
 const { Op } = require("sequelize"); // ✅ Import Sequelize Operators
 const nodemailer = require("nodemailer");
 const BuyFund = require("../models/BuyFunds");
-const { sendotp } = require("../controller/userController");
-
+const {sendotp} = require("../controller/userController");
 
 async function sendEmail(email, subject, data) {
     try {

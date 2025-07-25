@@ -10,6 +10,7 @@ const sequelize = require('../config/connectDB');
 const Investment = require('../models/Investment');
 const crypto = require('crypto');
 const bcrypt = require("bcryptjs");
+const {sendEmail } = require("../services/userServices");
 
 const BindMail = async (req, res) => {
   try {
