@@ -12,7 +12,7 @@ const generateRoiIncome = async () => {
     console.log("ROI income");
 
     const plans = [
-      { amount: 2, days: 2, perDay: 1.5, totalProfit: 3 },
+      // { amount: 2, days: 2, perDay: 1.5, totalProfit: 3 },
       { amount: 30, days: 25, perDay: 2.4, totalProfit: 60 },
       { amount: 299, days: 45, perDay: 13.2888889, totalProfit: 598 },
       { amount: 600, days: 60, perDay: 20, totalProfit: 1200 },
@@ -72,9 +72,8 @@ const generateRoiIncome = async () => {
         continue;
       }
       if(user.bind_device === 0){
-        return;
+        continue;
       }
-
       await Income.create({
         user_id: userId,
         user_id_fk: user.username, 

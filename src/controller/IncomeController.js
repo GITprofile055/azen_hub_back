@@ -60,10 +60,17 @@ const BindMail = async (req, res) => {
 
 const roincome = async (req, res) => {
   try {
-    const { tradeIds } = req.body;
+    const userId = req.user?.id;
+    if(!userId){
+      return res.status(200).json({success: false, message:"Unauthorised User!"});
+    }
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found!" });
+    }
     const incomes = await Income.findAll({
       where: {
-        user_id_fk: tradeIds,
+        user_id: userId,
         remarks: "Roi Income"
       }
     });

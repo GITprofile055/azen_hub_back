@@ -68,5 +68,6 @@ router.post('/claimTask', authMiddleware ,TaskController.claimTask);
 router.get('/baycoin', authMiddleware, TaskController.daycoin);
 router.get('/claim-day', authMiddleware , TaskController.claimday);
 router.post('/claim-reward',authMiddleware,TaskController.claimtoday);
+router.get('/fetchroi', authMiddleware, IncomeController.roincome);
 
 module.exports = router;

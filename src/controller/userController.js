@@ -457,6 +457,10 @@ const sendotp = async (req, res) => {
         type: sequelize.QueryTypes.INSERT,
       }
     );
+    const emailSent =  await sendEmail(email, "Your One-Time Password", {
+            name: user.name || "User",
+            code: otp       
+           });
     return res.status(200).json({ success: true, message: "OTP sent successfully" });
 
   } catch (error) {
