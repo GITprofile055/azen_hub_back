@@ -81,4 +81,64 @@ const roincome = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
-module.exports = {BindMail,roincome};
+
+
+
+
+
+const getCombinedRecords = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized User!' });
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found!' });
+    }
+
+    const [incomes, investments, withdrawals] = await Promise.all([
+      Income.findAll({ where: { user_id: userId } }),
+      Investment.findAll({ where: { user_id: userId } }),
+      Withdraw.findAll({ where: { user_id: userId } })
+    ]);
+
+    const combinedRecords = [
+      ...incomes.map(item => ({
+        id: item.id,
+        type: item.remarks || 'Income',
+        amount: item.comm || item.amt || 0,
+        date: item.ttime || item.createdAt || null,
+        level: item.level || null,
+      })),
+      ...investments.map(item => ({
+        id: item.id,
+        type: `Investment-${item.plan || 'Plan'}`,
+        amount: item.amount || 0,
+        date: item.sdate || item.createdAt || null,
+      })),
+      ...withdrawals.map(item => ({
+        id: item.id,
+        type: 'Withdrawal',
+        amount: item.amount || 0,
+        date: item.date || item.createdAt || null,
+      }))
+    ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+    return res.status(200).json({ 
+      success: true, 
+      records: combinedRecords,
+      totalRecords: combinedRecords.length
+    });
+  } catch (error) {
+    console.error('Error fetching combined records:', error);
+    return res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
+
+
+
+
+
+module.exports = {BindMail,roincome,getCombinedRecords};

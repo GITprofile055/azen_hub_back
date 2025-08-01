@@ -29,6 +29,7 @@ const User = sequelize.define('User', {
         allowNull: false,
         unique: true
     },
+
     usdtTrc20: {
         type: DataTypes.STRING,
         allowNull: true,
@@ -51,6 +52,11 @@ const User = sequelize.define('User', {
         allowNull: false
     },
     tpassword: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+
+     package: {
         type: DataTypes.STRING,
         allowNull: false
     },

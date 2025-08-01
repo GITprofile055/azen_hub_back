@@ -13,6 +13,7 @@ const IncomeController = require("../controller/IncomeController");
 const User = require('../models/User');
 
 router.get('/generateRoiIncome', cronController.generateRoiIncome);
+
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/forgotPassword', authController.forgotPassword);
@@ -22,7 +23,11 @@ router.get('/', (req, res) => {
 });                             
 router.get('/user', authMiddleware, UserController.getUserDetails);
 router.get('/levelteam',  authMiddleware,UserController.levelTeam);
+router.get('/myLevelTeam',  authMiddleware,UserController.myLevelTeam);
+
 router.get('/directeam',  authMiddleware,UserController.direcTeam);
+router.get('/income-breakup',  authMiddleware,UserController.getTodayIncome);
+
 router.get('/fetchwallet', authMiddleware, UserController.fetchwallet);
 router.get('/dynamic-upi-callback', UserController.dynamicUpiCallback);
 router.get('/availbal', authMiddleware, UserController.available_balance);
@@ -37,6 +42,8 @@ router.get('/investments', authMiddleware, UserController.InvestHistory);
 router.get('/withdraw-history', authMiddleware, UserController.withdrawHistory);
 router.post('/changePassword', authMiddleware, UserController.ChangePassword);
 router.post('/bindMail', authMiddleware, IncomeController.BindMail);
+router.get('/getCombinedRecords', authMiddleware, IncomeController.getCombinedRecords);
+
 
 router.get('/fetchservers', authMiddleware, UserController.fetchservers);
 router.post('/save-address/:networkType', authMiddleware, UserController.saveWalletAddress);
@@ -48,7 +55,7 @@ router.post('/sendtrade', authMiddleware, UserController.sendtrade);
 router.get('/runingtrade', authMiddleware, UserController.runingtrade);
 // router.get('/Getinvate', authMiddleware, TeamController.Getinvate);
 router.get("/team", authMiddleware ,TeamController.getTeam);
-// router.get('/list', authMiddleware,TeamController.listUsers);
+router.get('/list', authMiddleware,TeamController.listUsers);
 router.get('/serverc', authMiddleware, UserController.serverc);
 router.get('/totalRef', authMiddleware, UserController.totalRef);
 router.post('/getTradeIncomes', authMiddleware, UserController.tradeinc);
@@ -56,6 +63,8 @@ router.get('/buyFund', authMiddleware, UserController.buyFund);
 router.post('/Deposit', authMiddleware, UserController.Deposit);
 router.put('/updateProfile', authMiddleware, UserController.updateProfile);
 router.get('/earning', authMiddleware, UserController.Earning);
+router.post('/investInPlan', authMiddleware, UserController.investInPlan);
+
 // router.post('/register', (req, res) => {
 //   res.json({ message: 'Welcome to regiset' });
 // });

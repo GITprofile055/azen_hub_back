@@ -62,6 +62,8 @@ const register = async (req, res) => {
             tpassword: hashedTPassword,
             PSR: password,
             TPSR: tpassword,
+               jdate: new Date().toISOString().slice(0, 10),
+
             sponsor: sponsorUser.id,
             level: sponsorLevel + 1,  // Default to 0 if sponsor level is not defined, then add 1
             ParentId: parentId,

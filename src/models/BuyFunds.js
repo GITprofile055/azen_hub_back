@@ -12,6 +12,10 @@ const BuyFund = sequelize.define(
     status: { type: DataTypes.STRING, allowNull: true },    
     bdate: { type: DataTypes.DATE, allowNull: true },
     type: { type: DataTypes.STRING, allowNull: true},
+     created_at: {
+            type: DataTypes.DATE,
+            allowNull: true,
+        },
   },
   {
     tableName: "buy_funds",

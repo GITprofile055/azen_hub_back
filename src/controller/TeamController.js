@@ -152,100 +152,161 @@ const myLevelTeamCount2 = async (userId, level = 3) => {
 };
 
 
-
 const getTeam = async (req, res) => {
-    try {
-        const user = req.user; // 🔹 Get authenticated user (Assuming JWT middleware is used   
-         const userId = user.id;
+  try {
+    const user = req.user; // 🔹 Get authenticated user (Assuming JWT middleware is used   
+    const userId = user.id;
 
-        if (!userId || !userId) {
-            return res.status(200).json({ error: "Unauthorized: User not found" });
-        }
-        const ids = await myLevelTeam(userId);
-        const myLevelTeamCount = await myLevelTeamCount2(userId);
-        
-        const genTeam1 = myLevelTeamCount[1] || [];
-        const genTeam2 = myLevelTeamCount[2] || [];
-        const genTeam3 = myLevelTeamCount[3] || [];
-        const genTeam4 = myLevelTeamCount[4] || [];
-        const genTeam5 = myLevelTeamCount[5] || [];
-        const genTeam6 = myLevelTeamCount[6] || [];
-
-
-        const notes = await User.findAll({
-            where: { id: ids.length ? { [Op.in]: ids } : null },
-            order: [['id', 'DESC']]
-        });
-
-        const [team1, team2, team3,team4,team5,team6] = await Promise.all([
-            getUsersByIds(genTeam1),
-            getUsersByIds(genTeam2),
-            getUsersByIds(genTeam3),
-            getUsersByIds(genTeam4),
-            getUsersByIds(genTeam5),
-            getUsersByIds(genTeam6)
-
-        ]);
-
-        const [team1Stats, team2Stats, team3Stats,team4Stats,team5Stats,team6Stats] = await Promise.all([
-            getTeamStats(team1),
-            getTeamStats(team2),
-            getTeamStats(team3),
-            getTeamStats(team4),
-            getTeamStats(team5),
-            getTeamStats(team6)
-
-        ]);
-
-        const response = {
-            gen_team1Recharge: team1Stats.recharge,
-            gen_team1Withdraw: team1Stats.withdraw,
-            gen_team1Earning: team1Stats.earning,
-            gen_team2Recharge: team2Stats.recharge,
-            gen_team2Withdraw: team2Stats.withdraw,
-            gen_team2Earning: team2Stats.earning,
-            gen_team3Recharge: team3Stats.recharge,
-            gen_team3Withdraw: team3Stats.withdraw,
-            gen_team3Earning: team3Stats.earning,
-            gen_team3Recharge: team4Stats.recharge,
-            gen_team3Withdraw: team4Stats.withdraw,
-            gen_team3Earning: team4Stats.earning,
-            gen_team3Recharge: team5Stats.recharge,
-            gen_team3Withdraw: team5Stats.withdraw,
-            gen_team3Earning: team5Stats.earning,
-            gen_team3Recharge: team6Stats.recharge,
-            gen_team3Withdraw: team6Stats.withdraw,
-            gen_team3Earning: team6Stats.earning,
-            gen_team1total: team1.length,
-            active_gen_team1total: team1.filter(u => u.active_status === 'Active').length,
-            gen_team2total: team2.length,
-            active_gen_team2total: team2.filter(u => u.active_status === 'Active').length,
-            gen_team3total: team3.length,
-            active_gen_team2total: team3.filter(u => u.active_status === 'Active').length,
-            gen_team3total: team4.length,
-            active_gen_team2total: team5.filter(u => u.active_status === 'Active').length,
-            gen_team3total: team6.length,
-            active_gen_team6total: team6.filter(u => u.active_status === 'Active').length,
-            todaysUser: notes.filter(u => u.jdate === new Date().toISOString().split('T')[0]).length,
-            totalTeam: notes.length,
-            ActivetotalTeam: notes.filter(u => u.active_status === 'Active').length,
-            totalLevelIncome: await Income.sum('comm', { where: { user_id: userId, remarks: 'Team Commission' } }),
-            balance: parseFloat(0)
-        };
-         res.status(200).json({
-            message: 'Fetch successfully',
-            status: true,
-            data: response
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(200).json({
-            message: 'Server error',
-            status: false,
-        });
+    if (!userId || !userId) {
+      return res.status(200).json({ error: "Unauthorized: User not found" });
     }
+
+    const ids = await myLevelTeam(userId);
+    const myLevelTeamCount = await myLevelTeamCount2(userId);
+
+    // 🔹 10 levels ka data
+    const genTeam1 = myLevelTeamCount[1] || [];
+    const genTeam2 = myLevelTeamCount[2] || [];
+    const genTeam3 = myLevelTeamCount[3] || [];
+    const genTeam4 = myLevelTeamCount[4] || [];
+    const genTeam5 = myLevelTeamCount[5] || [];
+    const genTeam6 = myLevelTeamCount[6] || [];
+    const genTeam7 = myLevelTeamCount[7] || [];
+    const genTeam8 = myLevelTeamCount[8] || [];
+    const genTeam9 = myLevelTeamCount[9] || [];
+    const genTeam10 = myLevelTeamCount[10] || [];
+
+    const notes = await User.findAll({
+      where: { id: ids.length ? { [Op.in]: ids } : null },
+      order: [['id', 'DESC']]
+    });
+
+    const [
+      team1, team2, team3, team4, team5, team6, team7, team8, team9, team10
+    ] = await Promise.all([
+      getUsersByIds(genTeam1),
+      getUsersByIds(genTeam2),
+      getUsersByIds(genTeam3),
+      getUsersByIds(genTeam4),
+      getUsersByIds(genTeam5),
+      getUsersByIds(genTeam6),
+      getUsersByIds(genTeam7),
+      getUsersByIds(genTeam8),
+      getUsersByIds(genTeam9),
+      getUsersByIds(genTeam10),
+    ]);
+
+    const [
+      team1Stats, team2Stats, team3Stats, team4Stats, team5Stats,
+      team6Stats, team7Stats, team8Stats, team9Stats, team10Stats
+    ] = await Promise.all([
+      getTeamStats(team1),
+      getTeamStats(team2),
+      getTeamStats(team3),
+      getTeamStats(team4),
+      getTeamStats(team5),
+      getTeamStats(team6),
+      getTeamStats(team7),
+      getTeamStats(team8),
+      getTeamStats(team9),
+      getTeamStats(team10),
+    ]);
+
+    const response = {
+      // 🔹 Team 1
+      gen_team1Recharge: team1Stats.recharge,
+      gen_team1Withdraw: team1Stats.withdraw,
+      gen_team1Earning: team1Stats.earning,
+      gen_team1total: team1.length,
+      active_gen_team1total: team1.filter(u => u.active_status === 'Active').length,
+
+      // 🔹 Team 2
+      gen_team2Recharge: team2Stats.recharge,
+      gen_team2Withdraw: team2Stats.withdraw,
+      gen_team2Earning: team2Stats.earning,
+      gen_team2total: team2.length,
+      active_gen_team2total: team2.filter(u => u.active_status === 'Active').length,
+
+      // 🔹 Team 3
+      gen_team3Recharge: team3Stats.recharge,
+      gen_team3Withdraw: team3Stats.withdraw,
+      gen_team3Earning: team3Stats.earning,
+      gen_team3total: team3.length,
+      active_gen_team3total: team3.filter(u => u.active_status === 'Active').length,
+
+      // 🔹 Team 4
+      gen_team4Recharge: team4Stats.recharge,
+      gen_team4Withdraw: team4Stats.withdraw,
+      gen_team4Earning: team4Stats.earning,
+      gen_team4total: team4.length,
+      active_gen_team4total: team4.filter(u => u.active_status === 'Active').length,
+
+      // 🔹 Team 5
+      gen_team5Recharge: team5Stats.recharge,
+      gen_team5Withdraw: team5Stats.withdraw,
+      gen_team5Earning: team5Stats.earning,
+      gen_team5total: team5.length,
+      active_gen_team5total: team5.filter(u => u.active_status === 'Active').length,
+
+      // 🔹 Team 6
+      gen_team6Recharge: team6Stats.recharge,
+      gen_team6Withdraw: team6Stats.withdraw,
+      gen_team6Earning: team6Stats.earning,
+      gen_team6total: team6.length,
+      active_gen_team6total: team6.filter(u => u.active_status === 'Active').length,
+
+      // 🔹 Team 7
+      gen_team7Recharge: team7Stats.recharge,
+      gen_team7Withdraw: team7Stats.withdraw,
+      gen_team7Earning: team7Stats.earning,
+      gen_team7total: team7.length,
+      active_gen_team7total: team7.filter(u => u.active_status === 'Active').length,
+
+      // 🔹 Team 8
+      gen_team8Recharge: team8Stats.recharge,
+      gen_team8Withdraw: team8Stats.withdraw,
+      gen_team8Earning: team8Stats.earning,
+      gen_team8total: team8.length,
+      active_gen_team8total: team8.filter(u => u.active_status === 'Active').length,
+
+      // 🔹 Team 9
+      gen_team9Recharge: team9Stats.recharge,
+      gen_team9Withdraw: team9Stats.withdraw,
+      gen_team9Earning: team9Stats.earning,
+      gen_team9total: team9.length,
+      active_gen_team9total: team9.filter(u => u.active_status === 'Active').length,
+
+      // 🔹 Team 10
+      gen_team10Recharge: team10Stats.recharge,
+      gen_team10Withdraw: team10Stats.withdraw,
+      gen_team10Earning: team10Stats.earning,
+      gen_team10total: team10.length,
+      active_gen_team10total: team10.filter(u => u.active_status === 'Active').length,
+
+      // 🔹 Extra Details
+      todaysUser: notes.filter(u => u.jdate === new Date().toISOString().split('T')[0]).length,
+      totalTeam: notes.length,
+      ActivetotalTeam: notes.filter(u => u.active_status === 'Active').length,
+      totalLevelIncome: await Income.sum('comm', { where: { user_id: userId, remarks: 'Team Commission' } }),
+      balance: parseFloat(0)
+    };
+
+    res.status(200).json({
+      message: 'Fetch successfully',
+      status: true,
+      data: response
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(200).json({
+      message: 'Server error',
+      status: false,
+    });
+  }
 };
+
+
 
 
 
@@ -290,6 +351,8 @@ const listUsers = async (req, res) => {
                 { email: { [Op.like]: `%${search}%` } },
                 { phone: { [Op.like]: `%${search}%` } },
                 { jdate: { [Op.like]: `%${search}%` } },
+                                { package: { [Op.like]: `%${search}%` } },
+
                 { active_status: { [Op.like]: `%${search}%` } }
             );
         }

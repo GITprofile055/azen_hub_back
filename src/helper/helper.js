@@ -90,4 +90,74 @@ const addLevelIncome = async (id, amt, invest_id) => {
 
 
 
-module.exports = addLevelIncome;
+const addDirectIncome = async (userId, amt) => {
+  try {
+    const userData = await User.findOne({ where: { id: userId } });
+    if (!userData) return false;
+
+    const rname = userData.username;
+    const fullname = userData.name;
+    const user_mid = userData.id;
+    const amount = amt / 100;
+    const cnt = 1;
+
+    const sponsorData = await User.findOne({ where: { id: user_mid } });
+    const sponsorId = sponsorData?.sponsor || null;
+
+    let sp_status = 'Pending';
+    let Sposnor_status = null;
+    let total_profit = 0;
+    let total_get = 0;
+
+    if (sponsorId) {
+      Sposnor_status = await User.findOne({ where: { id: sponsorId } });
+      sp_status = Sposnor_status?.active_status || 'Pending';
+
+      const lastPackage = await Investment.sum('amount', {
+        where: { user_id: Sposnor_status.id, status: 'Active' }
+      });
+
+      total_profit = await Income.sum('comm', {
+        where: { user_id: Sposnor_status.id }
+      });
+
+      total_get = (lastPackage || 0) * 200 / 100;
+    }
+
+    const percent = 5;
+    let pp = sp_status === 'Active' ? amount * percent : 0;
+
+    const spid = Sposnor_status?.id || 0;
+
+    const max_income = total_get;
+    const n_m_t = max_income - (total_profit || 0);
+    if (pp >= n_m_t) {
+      pp = n_m_t;
+    }
+
+    if (spid > 0 && pp > 0) {
+      await Income.create({
+        user_id: spid,
+        user_id_fk: Sposnor_status.username,
+        amt: amt,
+        comm: pp,
+        remarks: 'Direct Bonus',
+        level: cnt,
+        rname: rname,
+        fullname: fullname,
+        ttime: new Date()
+      });
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Direct Income Error:', error);
+    return false;
+  }
+};
+
+module.exports = {
+  addLevelIncome,
+  addDirectIncome
+};
+

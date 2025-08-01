@@ -8,6 +8,9 @@ const { calculateAvailableBalance } = require("../helper/helper");
 const axios = require('axios');
 const sequelize = require('../config/connectDB');
 const Investment = require('../models/Investment');
+const Plan = require('../models/Plan');
+const { addDirectIncome } = require("../helper/helper");
+
 const crypto = require('crypto');
 const bcrypt = require("bcryptjs");
 const {sendEmail} = require("../services/userServices");
@@ -28,6 +31,7 @@ const available_balance = async (req, res) => {
 
     const totalCommission = await Income.sum('comm', { where: { user_id: userId } }) || 0;
     const buyFunds = await BuyFund.sum('amount', { where: { user_id: userId } }) || 0;
+
     const investment = await Investment.sum('amount', { where: { user_id: userId } }) || 0;
     const totalWithdraw = await Withdraw.sum('amount', { where: { user_id: userId } }) || 0;
     const Rtrades = await Trade.sum('amount', { where: { user_id: userId, status: "Running" } }) || 0;
@@ -46,6 +50,8 @@ const available_balance = async (req, res) => {
     return res.status(200).json({ success: false, message: "Internal Server Error" });
   }
 };
+
+
 
 const getAvailableBalance = async (userId) => {
   if (!userId) {
@@ -164,6 +170,11 @@ const levelTeam = async (req, res) => {
     return res.status(200).json({ success: false, error: "Server Error", details: error.message });
   }
 };
+
+
+
+
+
 
 const direcTeam = async (req, res) => {
   try {
@@ -292,6 +303,11 @@ const dynamicUpiCallback = async (req, res) => {
     });
   }
 };
+
+
+
+
+
 
 
 
@@ -507,6 +523,9 @@ const fetchserver = async (req, res) => {
   }
 };
 
+
+
+
 const myLevelTeam = async (userId, level = 3) => {
   let arrin = [userId];
   let ret = {};
@@ -529,6 +548,11 @@ const myLevelTeam = async (userId, level = 3) => {
   }
   return Object.values(ret).flat();
 };
+
+
+
+
+
 
 const submitserver = async (req, res) => {
   try {
@@ -1538,5 +1562,141 @@ const Earning = async (req, res) => {
 };
 
 
-module.exports = { levelTeam,buyFund, direcTeam,getDirectTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef,updateProfile,Deposit,Earning };
+
+
+
+const investInPlan = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.body; // Plan ID from frontend
+
+    if (!userId) {
+      return res.status(401).json({ status: false, message: "User not authenticated!" });
+    }
+
+    if (!id) {
+      return res.status(400).json({ status: false, message: "Plan ID is required!" });
+    }
+
+    // ✅ 1. Find Plan
+    const plan = await Plan.findOne({ where: { id } });
+    if (!plan) {
+      return res.status(404).json({ status: false, message: "Plan not found!" });
+    }
+
+
+
+const existingInvestment = await Investment.findOne({
+  where: {
+    user_id: userId,         // ✅ Correct user ID
+    plan: plan.vip           // e.g. "VIP1", "VIP2"
+  }
+});
+
+if (existingInvestment) {
+  return res.status(400).json({
+    status: false,
+    message: "You have already invested in this plan.",
+  });
+}
+
+
+
+
+
+
+    // ✅ 2. Get Available Wallet Balance
+    const availableBal = await getAvailableBalance(userId);
+
+    // ✅ 3. Check if balance is sufficient
+    if (availableBal < plan.amount) {
+      return res.status(400).json({ status: false, message: "Insufficient balance!" });
+    }
+
+  
+
+    // ✅ 5. Create investment record
+await Investment.create({
+  user_id: userId,
+  plan: plan.vip,
+  amount: plan.amount,
+  status: 'Active',
+  payment_mode: 'USDT', // ✅ this will go to 'investments' table
+  sdate: new Date()
+});
+
+   const user = await User.findByPk(userId);
+    if (user) {
+      await user.update({
+        active_status: "Active",
+        package: (user.package || 0) + plan.amount
+      });
+    }
+
+    await addDirectIncome(userId, plan.amount);
+    return res.status(200).json({ status: true, message: "" });
+
+  } catch (error) {
+    console.error("Error in investInPlan:", error);
+    return res.status(500).json({ status: false, message: "Internal Server Error!" });
+  }
+};
+
+
+
+const getTodayIncome = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "User not authenticated!" });
+    }
+
+    // ✅ Today ka start aur end time
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    // ✅ Sirf aaj ki incomes fetch
+    const todayIncomes = await Income.findAll({
+      where: {
+        user_id: userId,
+        ttime: { [Op.between]: [startOfToday, endOfToday] },
+      },
+    });
+
+    // ✅ Total comm ka sum
+    const todayIncome = todayIncomes.reduce((sum, row) => sum + (row.comm || 0), 0);
+
+    res.status(200).json({
+      success: true,
+      todayIncome,
+      records: todayIncomes, // optional: detail bhi bhejna hai to
+    });
+  } catch (error) {
+    console.error("Error fetching today income:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+module.exports = { getTodayIncome };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+module.exports = { levelTeam,buyFund, direcTeam,getDirectTeam, fetchwallet, dynamicUpiCallback, available_balance, withfatch, withreq, sendotp, processWithdrawal, fetchserver, submitserver, getAvailableBalance, fetchrenew, renewserver, fetchservers, sendtrade, runingtrade, serverc, tradeinc, InvestHistory, withdrawHistory, ChangePassword, saveWalletAddress, getUserDetails, PaymentPassword, totalRef,updateProfile,Deposit,Earning,myLevelTeam ,investInPlan,getTodayIncome};
 
