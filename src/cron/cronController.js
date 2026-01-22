@@ -10,7 +10,6 @@ const moment = require('moment');
 const generateRoiIncome = async () => {
   try {
     console.log("ROI income");
-
     const plans = [
       // { amount: 2, days: 2, perDay: 1.5, totalProfit: 3 },
       { amount: 30, days: 25, perDay: 2.4, totalProfit: 60 },
@@ -64,9 +63,7 @@ const generateRoiIncome = async () => {
         console.log(`ℹ️ ROI already generated for user ${userId} on ${today}`);
         continue;
       }
-
       const user = await User.findOne({ where: { id: userId } });
-
       if (!user) {
         console.log(` User not found with ID ${userId}`);
         continue;
@@ -94,6 +91,7 @@ const generateRoiIncome = async () => {
     console.error(" Error while generating ROI income:", error.message);
   }
 };
+
 
 
 module.exports = {generateRoiIncome};

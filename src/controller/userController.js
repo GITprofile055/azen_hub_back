@@ -105,10 +105,7 @@ const getDirectTeam = async (req, res) => {
   try {
     const loginUserId = req.user.id; // Assuming you are using JWT middleware and user info is available in req.user
 
-    const directTeam = await User.findAll({
-      where: { sponsor: loginUserId },
-      attributes: ['id', 'name', 'username', 'email', 'phone', 'sponsor','active_status'],
-      order: [['id', 'DESC']]
+    const directTeam = await User.findAll({where: { sponsor: loginUserId },attributes: ['id', 'name', 'username', 'email', 'phone', 'sponsor','active_status'],order: [['id', 'DESC']]
     });
 
     res.status(200).json({
@@ -668,7 +665,7 @@ const renewserver = async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(200).json({ success: false, message: "User not authenticated!" });
+      return res.status(200).json({ success: false, 'message': "User not authenticated!" });
     }
 
     const { serverhash, amount, plan } = req.body;

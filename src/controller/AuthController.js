@@ -43,8 +43,7 @@ const register = async (req, res) => {
         const hashedTPassword = await bcrypt.hash(tpassword, 10);
   
         // Get parent ID
-        const lastUser = await User.findOne({
-            order: [['id', 'DESC']]
+        const lastUser = await User.findOne({ order: [['id', 'DESC']]
         });
         const parentId = lastUser ? lastUser.id : null;
         // Provide a default for sponsor level if it's undefined or null
@@ -109,11 +108,7 @@ const login = async (req, res) => {
   
       // Generate a JWT token.
       
-      const token = jwt.sign(
-        { id: user.id },
-        process.env.JWT_SECRET,  
-       
-      );
+      const token = jwt.sign({ id: user.id },process.env.JWT_SECRET,);
   
       return res.status(200).json({
         status:true,
